@@ -29,15 +29,15 @@ TOOLS = [
         "name": "bash",
         "description": "Run a shell command.",
         "parameters": {
-        "type": "object",
-        "properties": {
-            "command": {
-            "type": "string",
-            "description": "The shell command to run."
-            }
-        },
-        "required": ["command"],
-        "additionalProperties": False
+            "type": "object",
+            "properties": {
+                "command": {
+                "type": "string",
+                "description": "The shell command to run."
+                }
+            },
+            "required": ["command"],
+            "additionalProperties": False
         }
     }
 ]
@@ -139,6 +139,7 @@ def build_response_body(user_prompts: str, extra: dict = None) -> dict:
 
     return {
         "model": MODEL,
+        "stream": False,
         "instructions": SYSTEM,
         "input": user_prompts,
         "tool_choice": "auto",
@@ -191,6 +192,7 @@ def normalize_response(response: any) -> dict:
 def build_client() -> OpenAI:
     return OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
+client = build_client()
 
 def stream_response(client: OpenAI, user_prompt: list[str], extra: dict = None) -> dict:
     body = build_response_body(user_prompt, extra=extra)
@@ -224,6 +226,9 @@ def stream_response(client: OpenAI, user_prompt: list[str], extra: dict = None) 
         raise
     except APIConnectionError:
         raise
+    except json.JSONDecodeError:
+        print(f"response text: {response.text}")
+        raise
     except Exception:
         raise
 
@@ -231,7 +236,7 @@ def stream_response(client: OpenAI, user_prompt: list[str], extra: dict = None) 
 def agentic_loop(user_input: list[str]):
     conversation = list(user_input)
     while True:
-        response = stream_response(build_client(), list(conversation))
+        response = stream_response(client, list(conversation))
         if len(response["output"]) and response["output"][0]["type"] != "function_call":
             return response["output"][0]
         
